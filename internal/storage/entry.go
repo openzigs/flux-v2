@@ -520,7 +520,8 @@ func (s *Storage) MarkAllAsRead(userID int64) error {
 }
 
 // MarkAllAsReadBeforeDate updates all user entries to the read status before the given date.
-func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) error {
+// It returns the number of entries that changed from unread to read.
+func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -532,15 +533,18 @@ func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) error 
 	`
 	result, err := s.db.Exec(query, model.EntryStatusRead, userID, model.EntryStatusUnread, before)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark all entries as read before %s: %v`, before.Format(time.RFC3339), err)
+		return 0, fmt.Errorf(`store: unable to mark all entries as read before %s: %v`, before.Format(time.RFC3339), err)
 	}
-	count, _ := result.RowsAffected()
+	count, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf(`store: unable to count entries marked as read before %s: %v`, before.Format(time.RFC3339), err)
+	}
 	slog.Debug("Marked all entries as read before date",
 		slog.Int64("user_id", userID),
 		slog.Int64("nb_entries", count),
 		slog.String("before", before.Format(time.RFC3339)),
 	)
-	return nil
+	return count, nil
 }
 
 // MarkGloballyVisibleFeedsAsRead marks as read the unread entries that are
