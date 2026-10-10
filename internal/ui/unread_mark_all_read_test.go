@@ -89,3 +89,8 @@ func TestAgeCutoffUsesFixedDays(t *testing.T) {
 		t.Fatalf("expected a 72h cutoff, got %v", now.Sub(got))
 	}
 }
+
+func contextWithUser(r *http.Request, sess *model.WebSession, userID int64) context.Context {
+	ctx := context.WithValue(r.Context(), request.WebSessionContextKey, sess)
+	return context.WithValue(ctx, request.UserIDContextKey, userID)
+}
