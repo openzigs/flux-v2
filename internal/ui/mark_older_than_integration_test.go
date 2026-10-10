@@ -170,3 +170,28 @@ func TestMarkOlderThanSelectsOnlyStaleEntries(t *testing.T) {
 		}
 	}
 }
+
+func TestMarkOlderThanOnlyTouchesTheCurrentUser(t *testing.T) {
+	env := newMarkReadEnv(t)
+	a := env.newUser(t)
+	b := env.newUser(t)
+	day := 24 * time.Hour
+
+	aStale := env.insertEntry(t, a, 60*day, model.EntryStatusUnread)
+	bStale := env.insertEntry(t, b, 60*day, model.EntryStatusUnread)
+	env.insertEntry(t, b, 90*day, model.EntryStatusUnread)
+	bUnreadBefore := env.countUnread(t, b.id)
+
+	if _, failure := env.markOlderThan(t, a.id, "30"); failure != "" {
+		t.Fatalf("unexpected error message %q", failure)
+	}
+	if got := env.status(t, aStale); got != model.EntryStatusRead {
+		t.Errorf("user A's stale entry: expected read, got %q", got)
+	}
+	if got := env.status(t, bStale); got != model.EntryStatusUnread {
+		t.Errorf("user B's stale entry: expected unread, got %q", got)
+	}
+	if got := env.countUnread(t, b.id); got != bUnreadBefore {
+		t.Errorf("user B's unread count changed from %d to %d", bUnreadBefore, got)
+	}
+}
