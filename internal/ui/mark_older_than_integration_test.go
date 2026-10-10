@@ -235,3 +235,38 @@ func TestMarkOlderThanKeepsStarredAndSharedEntriesIntact(t *testing.T) {
 		t.Fatalf("share code no longer resolves to the entry: %v, %v", shared, err)
 	}
 }
+
+func (env *markReadEnv) changedAt(t testing.TB, entryID int64) time.Time {
+	t.Helper()
+	var changedAt time.Time
+	if err := env.db.QueryRow(`SELECT changed_at FROM entries WHERE id=$1`, entryID).Scan(&changedAt); err != nil {
+		t.Fatalf("unable to read entry %d: %v", entryID, err)
+	}
+	return changedAt
+}
+
+func TestMarkOlderThanRepeatReportsZero(t *testing.T) {
+	env := newMarkReadEnv(t)
+	u := env.newUser(t)
+	day := 24 * time.Hour
+
+	alreadyRead := env.insertEntry(t, u, 90*day, model.EntryStatusRead)
+	env.insertEntry(t, u, 60*day, model.EntryStatusUnread)
+	readChangedAt := env.changedAt(t, alreadyRead)
+
+	if success, _ := env.markOlderThan(t, u.id, "30"); success != "1 entries marked as read." {
+		t.Fatalf("first run: unexpected success message %q", success)
+	}
+	firstRunChangedAt := env.changedAt(t, alreadyRead)
+
+	success, failure := env.markOlderThan(t, u.id, "30")
+	if failure != "" {
+		t.Fatalf("second run: unexpected error message %q", failure)
+	}
+	if success != "0 entries marked as read." {
+		t.Fatalf("second run: unexpected success message %q", success)
+	}
+	if got := env.changedAt(t, alreadyRead); !got.Equal(readChangedAt) || !got.Equal(firstRunChangedAt) {
+		t.Fatalf("already-read entry changed_at moved from %v to %v", readChangedAt, got)
+	}
+}
