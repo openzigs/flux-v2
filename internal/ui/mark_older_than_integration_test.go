@@ -92,8 +92,8 @@ func (env *markReadEnv) insertEntry(t testing.TB, u markReadUser, age time.Durat
 	t.Helper()
 	var id int64
 	err := env.db.QueryRow(`
-		INSERT INTO entries (user_id, feed_id, hash, title, url, content, published_at, status, changed_at)
-		VALUES ($1, $2, $3, 'title', 'https://example.org/entry', 'content', now() - $4::interval, $5, now() - interval '1 day')
+		INSERT INTO entries (user_id, feed_id, hash, title, url, comments_url, author, content, published_at, status, changed_at)
+		VALUES ($1, $2, $3, 'title', 'https://example.org/entry', '', '', 'content', now() - $4::interval, $5, now() - interval '1 day')
 		RETURNING id`,
 		u.id, u.feedID, randomTestSuffix(t), age.String(), status,
 	).Scan(&id)
@@ -193,5 +193,45 @@ func TestMarkOlderThanOnlyTouchesTheCurrentUser(t *testing.T) {
 	}
 	if got := env.countUnread(t, b.id); got != bUnreadBefore {
 		t.Errorf("user B's unread count changed from %d to %d", bUnreadBefore, got)
+	}
+}
+
+func TestMarkOlderThanKeepsStarredAndSharedEntriesIntact(t *testing.T) {
+	env := newMarkReadEnv(t)
+	u := env.newUser(t)
+
+	entryID := env.insertEntry(t, u, 60*24*time.Hour, model.EntryStatusUnread)
+	if err := env.store.SetEntriesStarredState(u.id, []int64{entryID}, true); err != nil {
+		t.Fatal(err)
+	}
+	shareCode, err := env.store.EntryShareCode(u.id, entryID)
+	if err != nil || shareCode == "" {
+		t.Fatalf("unable to share entry: %q, %v", shareCode, err)
+	}
+	before, err := env.store.NewEntryQueryBuilder(u.id).WithEntryIDs(entryID).GetEntry()
+	if err != nil || before == nil {
+		t.Fatalf("unable to load entry: %v", err)
+	}
+
+	if _, failure := env.markOlderThan(t, u.id, "30"); failure != "" {
+		t.Fatalf("unexpected error message %q", failure)
+	}
+
+	after, err := env.store.NewEntryQueryBuilder(u.id).WithEntryIDs(entryID).GetEntry()
+	if err != nil || after == nil {
+		t.Fatalf("unable to reload entry: %v", err)
+	}
+	if after.Status != model.EntryStatusRead {
+		t.Errorf("expected read, got %q", after.Status)
+	}
+	if !after.Starred {
+		t.Error("expected the entry to stay starred")
+	}
+	if after.ShareCode != shareCode || after.Title != before.Title || after.Content != before.Content {
+		t.Errorf("share code, title or content changed: %+v", after)
+	}
+	shared, err := env.store.NewAnonymousQueryBuilder().WithShareCode(shareCode).GetEntry()
+	if err != nil || shared == nil || shared.ID != entryID {
+		t.Fatalf("share code no longer resolves to the entry: %v, %v", shared, err)
 	}
 }
