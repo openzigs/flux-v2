@@ -308,3 +308,46 @@ func TestMarkOlderThanReportedCountMatchesUnreadDelta(t *testing.T) {
 		t.Fatalf("unread count dropped by %d, but %d were reported", delta, reported)
 	}
 }
+
+func TestMarkOlderThanLargeVolume(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large-volume test skipped in -short mode")
+	}
+	env := newMarkReadEnv(t)
+	u := env.newUser(t)
+	const stale = 100_000
+
+	_, err := env.db.Exec(`
+		INSERT INTO entries (user_id, feed_id, hash, title, url, comments_url, author, content, published_at, status, changed_at)
+		SELECT $1, $2, 'bulk-' || g, 'title', 'https://example.org/entry', '', '', 'content',
+			now() - interval '60 days' - (g || ' seconds')::interval, 'unread', now()
+		FROM generate_series(1, $3) AS g`,
+		u.id, u.feedID, stale,
+	)
+	if err != nil {
+		t.Fatalf("unable to bulk insert entries: %v", err)
+	}
+	fresh := env.insertEntry(t, u, time.Hour, model.EntryStatusUnread)
+	unreadBefore := env.countUnread(t, u.id)
+
+	start := time.Now()
+	success, failure := env.markOlderThan(t, u.id, "30")
+	elapsed := time.Since(start)
+	t.Logf("marked %d entries in %v", stale, elapsed)
+
+	if failure != "" {
+		t.Fatalf("unexpected error message %q", failure)
+	}
+	if want := fmt.Sprintf("%d entries marked as read.", stale); success != want {
+		t.Fatalf("expected %q, got %q", want, success)
+	}
+	if delta := unreadBefore - env.countUnread(t, u.id); delta != stale {
+		t.Fatalf("expected the unread count to drop by %d, got %d", stale, delta)
+	}
+	if got := env.status(t, fresh); got != model.EntryStatusUnread {
+		t.Fatalf("fresh entry: expected unread, got %q", got)
+	}
+	if elapsed > 5*time.Second {
+		t.Fatalf("marking %d entries took %v, over the 5s budget", stale, elapsed)
+	}
+}
