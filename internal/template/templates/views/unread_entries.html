@@ -31,6 +31,20 @@
                     data-label-no="{{ t "confirm.no" }}"
                     data-label-loading="{{ t "confirm.loading" }}">{{ icon "mark-all-as-read" }}{{ t "menu.mark_all_as_read" }}</button>
             </li>
+            <li>
+                <form
+                    action="{{ routePath "/mark-older-than-as-read" }}"
+                    method="post"
+                    class="page-header-action-form"
+                >
+                    <input type="hidden" name="csrf" value="{{ .csrf }}">
+                    <label for="mark-older-than-days" class="sr-only">{{ t "menu.mark_older_than_as_read" }}</label>
+                    <input type="number" id="mark-older-than-days" name="days" min="1" max="36500" step="1" value="30" required inputmode="numeric" size="5">
+                    <button class="page-button" data-label-loading="{{ t "confirm.loading" }}">
+                        {{ icon "mark-all-as-read" }}{{ t "menu.mark_older_than_as_read" }}
+                    </button>
+                </form>
+            </li>
         </ul>
     </nav>
     {{ end }}

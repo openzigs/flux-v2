@@ -42,6 +42,7 @@ func Serve(store *storage.Storage, pool *worker.Pool) http.Handler {
 
 	// Unread page.
 	mux.HandleFunc("POST /mark-all-as-read", handler.markAllAsRead)
+	mux.HandleFunc("POST /mark-older-than-as-read", handler.markOlderThanAsRead)
 	mux.HandleFunc("GET /unread", handler.showUnreadPage)
 	mux.HandleFunc("GET /unread/entry/{entryID}", handler.showUnreadEntryPage)
 
