@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -268,5 +269,42 @@ func TestMarkOlderThanRepeatReportsZero(t *testing.T) {
 	}
 	if got := env.changedAt(t, alreadyRead); !got.Equal(readChangedAt) || !got.Equal(firstRunChangedAt) {
 		t.Fatalf("already-read entry changed_at moved from %v to %v", readChangedAt, got)
+	}
+}
+
+func TestMarkOlderThanReportedCountMatchesUnreadDelta(t *testing.T) {
+	env := newMarkReadEnv(t)
+	u := env.newUser(t)
+	day := 24 * time.Hour
+
+	for _, age := range []time.Duration{8 * day, 10 * day, 20 * day, 200 * day} {
+		env.insertEntry(t, u, age, model.EntryStatusUnread)
+	}
+	env.insertEntry(t, u, 2*day, model.EntryStatusUnread)
+	env.insertEntry(t, u, 30*day, model.EntryStatusRead)
+	unreadBefore := env.countUnread(t, u.id)
+
+	sess, _ := model.NewWebSession("test-agent", "127.0.0.1")
+	r := httptest.NewRequest(http.MethodPost, "/mark-older-than-as-read", nil)
+	r.PostForm = url.Values{"days": {"7"}}
+	r = r.WithContext(contextWithUser(r, sess, u.id))
+	w := httptest.NewRecorder()
+	env.h.markOlderThanAsRead(w, r)
+
+	// The handler redirects to the unread page, which re-renders its counter
+	// from the database: no manual refresh is needed.
+	if location := w.Header().Get("Location"); location != "/unread" {
+		t.Fatalf("expected a redirect to /unread, got %q", location)
+	}
+	success, _ := sess.ConsumeMessages()
+	var reported int
+	if _, err := fmt.Sscanf(success, "%d entries marked as read.", &reported); err != nil {
+		t.Fatalf("unable to read the count from %q: %v", success, err)
+	}
+	if reported != 4 {
+		t.Fatalf("expected 4 entries reported, got %d", reported)
+	}
+	if delta := unreadBefore - env.countUnread(t, u.id); delta != reported {
+		t.Fatalf("unread count dropped by %d, but %d were reported", delta, reported)
 	}
 }
