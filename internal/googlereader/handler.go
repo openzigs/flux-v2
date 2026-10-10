@@ -1222,7 +1222,7 @@ func (h *greaderHandler) markAllAsReadHandler(w http.ResponseWriter, r *http.Req
 			return
 		}
 	case ReadingListStream:
-		if err = h.store.MarkAllAsReadBeforeDate(userID, before); err != nil {
+		if _, err = h.store.MarkAllAsReadBeforeDate(userID, before); err != nil {
 			response.JSONServerError(w, r, err)
 			return
 		}
