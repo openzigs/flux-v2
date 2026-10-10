@@ -86,8 +86,8 @@ func insertEntry(t testing.TB, s *Storage, f testFixture, publishedAt time.Time,
 	t.Helper()
 	var id int64
 	err := s.db.QueryRow(`
-		INSERT INTO entries (user_id, feed_id, hash, title, url, content, published_at, status, changed_at)
-		VALUES ($1, $2, $3, 'title', 'https://example.org/entry', 'content', $4, $5, now() - interval '1 day')
+		INSERT INTO entries (user_id, feed_id, hash, title, url, comments_url, author, content, published_at, status, changed_at)
+		VALUES ($1, $2, $3, 'title', 'https://example.org/entry', '', '', 'content', $4, $5, now() - interval '1 day')
 		RETURNING id`,
 		f.userID, f.feedID, randomSuffix(t), publishedAt, status,
 	).Scan(&id)

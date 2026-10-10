@@ -351,3 +351,25 @@ func TestMarkOlderThanLargeVolume(t *testing.T) {
 		t.Fatalf("marking %d entries took %v, over the 5s budget", stale, elapsed)
 	}
 }
+
+func TestRegressionMarkAllAsReadHandlerStillMarksEverythingVisible(t *testing.T) {
+	env := newMarkReadEnv(t)
+	u := env.newUser(t)
+	old := env.insertEntry(t, u, 90*24*time.Hour, model.EntryStatusUnread)
+	recent := env.insertEntry(t, u, time.Minute, model.EntryStatusUnread)
+
+	sess, _ := model.NewWebSession("test-agent", "127.0.0.1")
+	r := httptest.NewRequest(http.MethodPost, "/mark-all-as-read", nil)
+	r = r.WithContext(contextWithUser(r, sess, u.id))
+	w := httptest.NewRecorder()
+	env.h.markAllAsRead(w, r)
+
+	if w.Code != http.StatusOK || w.Body.String() != `"OK"` {
+		t.Fatalf("expected the JSON \"OK\" contract, got %d %q", w.Code, w.Body.String())
+	}
+	for _, id := range []int64{old, recent} {
+		if got := env.status(t, id); got != model.EntryStatusRead {
+			t.Errorf("entry %d: expected read, got %q", id, got)
+		}
+	}
+}
