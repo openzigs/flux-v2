@@ -254,3 +254,9 @@ func TestMarkFeedAsReadWithDays(t *testing.T) {
 		return fmt.Sprintf("/feeds/%d/mark-all-as-read", f.feedID)
 	})
 }
+
+func TestMarkCategoryAsReadWithDays(t *testing.T) {
+	testMarkScopeAsReadWithDays(t, func(f *markAsReadDaysFixture) string {
+		return fmt.Sprintf("/categories/%d/mark-all-as-read", f.category.ID)
+	})
+}
