@@ -66,3 +66,8 @@ type versionResponse struct {
 	Arch      string `json:"arch"`
 	OS        string `json:"os"`
 }
+
+// markAsReadResponse reports how many entries a relative "older than N days" mark-as-read changed.
+type markAsReadResponse struct {
+	Count int64 `json:"count"`
+}

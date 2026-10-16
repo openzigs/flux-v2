@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"miniflux.app/v2/internal/http/request"
 	"miniflux.app/v2/internal/http/response"
@@ -129,12 +130,29 @@ func (h *handler) markUserAsReadHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.MarkAllAsRead(userID); err != nil {
+	cutoff, hasDays, err := request.OlderThanDaysCutoff(r, time.Now())
+	if err != nil {
+		response.JSONBadRequest(w, r, err)
+		return
+	}
+
+	if !hasDays {
+		if err := h.store.MarkAllAsRead(userID); err != nil {
+			response.JSONServerError(w, r, err)
+			return
+		}
+
+		response.NoContent(w, r)
+		return
+	}
+
+	count, err := h.store.MarkAllAsReadBeforeDate(userID, cutoff)
+	if err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
 
-	response.NoContent(w, r)
+	response.JSON(w, r, markAsReadResponse{Count: count})
 }
 
 func (h *handler) getIntegrationsStatusHandler(w http.ResponseWriter, r *http.Request) {
