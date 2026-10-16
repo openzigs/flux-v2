@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestFormInt64Value(t *testing.T) {
@@ -261,5 +262,79 @@ func TestHasQueryParam(t *testing.T) {
 
 	if result != expected {
 		t.Errorf(`Unexpected result, got %v instead of %v`, result, expected)
+	}
+}
+
+func TestResolveOlderThanDaysCutoff(t *testing.T) {
+	now := time.Date(2026, time.March, 29, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name    string
+		value   string
+		want    time.Time
+		wantErr bool
+	}{
+		{name: "one day is exactly 24 hours", value: "1", want: now.Add(-24 * time.Hour)},
+		{name: "thirty days", value: "30", want: now.Add(-30 * 24 * time.Hour)},
+		{name: "zero days is now", value: "0", want: now},
+		{name: "surrounding spaces", value: " 7 ", want: now.Add(-7 * 24 * time.Hour)},
+		{name: "negative", value: "-5", wantErr: true},
+		{name: "non numeric", value: "abc", wantErr: true},
+		{name: "decimal", value: "1.5", wantErr: true},
+		{name: "empty", value: "", wantErr: true},
+		{name: "too large", value: "100000", wantErr: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := ResolveOlderThanDaysCutoff(tc.value, now)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected an error for %q, got cutoff %v", tc.value, got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error for %q: %v", tc.value, err)
+			}
+			if !got.Equal(tc.want) {
+				t.Errorf("cutoff for %q = %v, want %v", tc.value, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestOlderThanDaysCutoffFromQuery(t *testing.T) {
+	now := time.Date(2026, time.March, 29, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name        string
+		query       string
+		wantPresent bool
+		want        time.Time
+		wantErr     bool
+	}{
+		{name: "absent key", query: "", wantPresent: false},
+		{name: "other keys only", query: "before=123", wantPresent: false},
+		{name: "valid", query: "days=30", wantPresent: true, want: now.Add(-30 * 24 * time.Hour)},
+		{name: "empty value", query: "days=", wantPresent: true, wantErr: true},
+		{name: "negative", query: "days=-1", wantPresent: true, wantErr: true},
+		{name: "non numeric", query: "days=abc", wantPresent: true, wantErr: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			r := httptest.NewRequest(http.MethodPut, "/?"+tc.query, nil)
+			got, present, err := OlderThanDaysCutoff(r, now)
+			if present != tc.wantPresent {
+				t.Fatalf("present = %v, want %v", present, tc.wantPresent)
+			}
+			if tc.wantErr != (err != nil) {
+				t.Fatalf("err = %v, wantErr %v", err, tc.wantErr)
+			}
+			if tc.wantPresent && !tc.wantErr && !got.Equal(tc.want) {
+				t.Errorf("cutoff = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
