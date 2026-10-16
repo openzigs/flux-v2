@@ -21,7 +21,9 @@
                     data-label-loading="{{ t "confirm.loading" }}">{{ icon "mark-page-as-read" }}{{ t "menu.mark_page_as_read" }}</button>
             </li>
             <li>
+                {{ template "mark_all_as_read_age" "unread-mark-all-as-read-age" }}
                 <button
+                    data-older-than-days-select="unread-mark-all-as-read-age"
                     class="page-button"
                     data-confirm="true"
                     data-url="{{ routePath "/mark-all-as-read" }}"

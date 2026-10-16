@@ -27,7 +27,9 @@
                     data-show-only-unread="{{ if .showOnlyUnreadEntries }}1{{ end }}">{{ icon "mark-page-as-read" }}{{ t "menu.mark_page_as_read" }}</button>
             </li>
             <li>
+                {{ template "mark_all_as_read_age" "category-mark-all-as-read-age" }}
                 <button
+                    data-older-than-days-select="category-mark-all-as-read-age"
                     class="page-button"
                     data-confirm="true"
                     data-label-question="{{ t "confirm.question" }}"

@@ -1,0 +1,10 @@
+{{ define "mark_all_as_read_age" }}
+<select id="{{ . }}" class="mark-all-as-read-age" aria-label="{{ t "menu.mark_all_as_read_age" }}">
+    <option value="">{{ t "menu.mark_all_as_read_any_age" }}</option>
+    <option value="1">{{ t "menu.mark_all_as_read_older_than_days" 1 }}</option>
+    <option value="7">{{ t "menu.mark_all_as_read_older_than_days" 7 }}</option>
+    <option value="14">{{ t "menu.mark_all_as_read_older_than_days" 14 }}</option>
+    <option value="30">{{ t "menu.mark_all_as_read_older_than_days" 30 }}</option>
+    <option value="90">{{ t "menu.mark_all_as_read_older_than_days" 90 }}</option>
+</select>
+{{ end }}
