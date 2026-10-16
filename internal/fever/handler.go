@@ -493,7 +493,7 @@ func (h *feverHandler) handleWriteFeeds(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.MarkFeedAsRead(userID, feedID, before); err != nil {
+	if _, err := h.store.MarkFeedAsRead(userID, feedID, before); err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
@@ -524,7 +524,7 @@ func (h *feverHandler) handleWriteGroups(w http.ResponseWriter, r *http.Request)
 		)
 	} else {
 		before := time.Unix(request.FormInt64Value(r, "before"), 0)
-		err = h.store.MarkCategoryAsRead(userID, groupID, before)
+		_, err = h.store.MarkCategoryAsRead(userID, groupID, before)
 		slog.Debug("[Fever] Mark group as read before a given date",
 			slog.Int64("user_id", userID),
 			slog.Int64("group_id", groupID),

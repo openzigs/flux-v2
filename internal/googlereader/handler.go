@@ -1202,7 +1202,7 @@ func (h *greaderHandler) markAllAsReadHandler(w http.ResponseWriter, r *http.Req
 			response.JSONBadRequest(w, r, err)
 			return
 		}
-		err = h.store.MarkFeedAsRead(userID, feedID, before)
+		_, err = h.store.MarkFeedAsRead(userID, feedID, before)
 		if err != nil {
 			response.JSONServerError(w, r, err)
 			return
@@ -1217,12 +1217,12 @@ func (h *greaderHandler) markAllAsReadHandler(w http.ResponseWriter, r *http.Req
 			response.JSONNotFound(w, r)
 			return
 		}
-		if err := h.store.MarkCategoryAsRead(userID, category.ID, before); err != nil {
+		if _, err := h.store.MarkCategoryAsRead(userID, category.ID, before); err != nil {
 			response.JSONServerError(w, r, err)
 			return
 		}
 	case ReadingListStream:
-		if err = h.store.MarkAllAsReadBeforeDate(userID, before); err != nil {
+		if _, err = h.store.MarkAllAsReadBeforeDate(userID, before); err != nil {
 			response.JSONServerError(w, r, err)
 			return
 		}

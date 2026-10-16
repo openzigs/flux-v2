@@ -101,7 +101,7 @@ func (h *handler) markCategoryAsReadHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err = h.store.MarkCategoryAsRead(userID, categoryID, time.Now()); err != nil {
+	if _, err = h.store.MarkCategoryAsRead(userID, categoryID, time.Now()); err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
