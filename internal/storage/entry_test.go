@@ -364,3 +364,37 @@ func TestMarkGloballyVisibleFeedsAsReadBeforeDate(t *testing.T) {
 		t.Errorf("expected no unread visible entries, got %d", unread)
 	}
 }
+
+// TestMarkAllAsReadBeforeDateLargeBacklog seeds 100,000 old unread entries and checks that one
+// call marks them all in a single bulk UPDATE (one statement, no per-feed or per-entry loop).
+func TestMarkAllAsReadBeforeDateLargeBacklog(t *testing.T) {
+	if testing.Short() {
+		t.Skip("large backlog test skipped in short mode")
+	}
+	f := newMarkAsReadFixture(t)
+	const backlog = 100_000
+
+	_, err := f.store.db.Exec(`
+		INSERT INTO entries (title, hash, url, published_at, content, author, user_id, feed_id, changed_at, status)
+		SELECT 'Backlog ' || n, 'backlog-' || n || '-' || $1::text, 'https://example.org/backlog/' || n,
+			now() - interval '400 days', '', '', $2, $3, now(), 'unread'
+		FROM generate_series(1, $4::int) AS n
+	`, f.feed.FeedURL, f.user.ID, f.feed.ID, backlog)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	start := time.Now()
+	count, err := f.store.MarkAllAsReadBeforeDate(f.user.ID, f.now.Add(-365*24*time.Hour))
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != backlog {
+		t.Fatalf("expected %d entries marked as read, got %d", backlog, count)
+	}
+	if unread := countUnread(t, f.store, f.user.ID, 0); unread != 5 {
+		t.Errorf("entries newer than the cutoff must stay unread, got %d unread", unread)
+	}
+	t.Logf("marked %d entries as read in %s", count, elapsed)
+}
