@@ -519,8 +519,9 @@ func (s *Storage) MarkAllAsRead(userID int64) error {
 	return nil
 }
 
-// MarkAllAsReadBeforeDate updates all user entries to the read status before the given date.
-func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) error {
+// MarkAllAsReadBeforeDate updates all user entries to the read status before the given date
+// and returns the number of entries it changed.
+func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -532,7 +533,7 @@ func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) error 
 	`
 	result, err := s.db.Exec(query, model.EntryStatusRead, userID, model.EntryStatusUnread, before)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark all entries as read before %s: %v`, before.Format(time.RFC3339), err)
+		return 0, fmt.Errorf(`store: unable to mark all entries as read before %s: %v`, before.Format(time.RFC3339), err)
 	}
 	count, _ := result.RowsAffected()
 	slog.Debug("Marked all entries as read before date",
@@ -540,7 +541,7 @@ func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) error 
 		slog.Int64("nb_entries", count),
 		slog.String("before", before.Format(time.RFC3339)),
 	)
-	return nil
+	return count, nil
 }
 
 // MarkGloballyVisibleFeedsAsRead marks as read the unread entries that are
@@ -578,7 +579,7 @@ func (s *Storage) MarkGloballyVisibleFeedsAsRead(userID int64) error {
 }
 
 // MarkFeedAsRead updates all feed entries to the read status.
-func (s *Storage) MarkFeedAsRead(userID, feedID int64, before time.Time) error {
+func (s *Storage) MarkFeedAsRead(userID, feedID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -590,7 +591,7 @@ func (s *Storage) MarkFeedAsRead(userID, feedID int64, before time.Time) error {
 	`
 	result, err := s.db.Exec(query, model.EntryStatusRead, userID, feedID, model.EntryStatusUnread, before)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark feed entries as read: %v`, err)
+		return 0, fmt.Errorf(`store: unable to mark feed entries as read: %v`, err)
 	}
 
 	count, _ := result.RowsAffected()
@@ -601,11 +602,11 @@ func (s *Storage) MarkFeedAsRead(userID, feedID int64, before time.Time) error {
 		slog.String("before", before.Format(time.RFC3339)),
 	)
 
-	return nil
+	return count, nil
 }
 
 // MarkCategoryAsRead updates all category entries to the read status.
-func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time) error {
+func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -627,7 +628,7 @@ func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time)
 	`
 	result, err := s.db.Exec(query, model.EntryStatusRead, userID, model.EntryStatusUnread, before, categoryID)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark category entries as read: %v`, err)
+		return 0, fmt.Errorf(`store: unable to mark category entries as read: %v`, err)
 	}
 
 	count, _ := result.RowsAffected()
@@ -638,7 +639,7 @@ func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time)
 		slog.String("before", before.Format(time.RFC3339)),
 	)
 
-	return nil
+	return count, nil
 }
 
 // EntryShareCode returns the share code of the provided entry.

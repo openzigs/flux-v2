@@ -243,7 +243,7 @@ func TestMarkAllAsReadBeforeDateReturnsAffectedCount(t *testing.T) {
 		t.Errorf("another user's entries must not change, got %d unread", unread)
 	}
 
-	entry, err := f.store.NewEntryQueryBuilder(f.user.ID).WithEntryID(oldEntryID).GetEntry()
+	entry, err := f.store.NewEntryQueryBuilder(f.user.ID).WithEntryIDs(oldEntryID).GetEntry()
 	if err != nil {
 		t.Fatal(err)
 	}
