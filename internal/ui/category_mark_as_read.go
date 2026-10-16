@@ -26,7 +26,16 @@ func (h *handler) markCategoryAsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.store.MarkCategoryAsRead(userID, categoryID, time.Now()); err != nil {
+	cutoff, _, err := request.OlderThanDaysCutoff(r, time.Now())
+	if err != nil {
+		response.HTMLBadRequest(w, r, err)
+		return
+	}
+	if cutoff.IsZero() {
+		cutoff = time.Now()
+	}
+
+	if _, err = h.store.MarkCategoryAsRead(userID, categoryID, cutoff); err != nil {
 		response.HTMLServerError(w, r, err)
 		return
 	}

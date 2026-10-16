@@ -336,3 +336,31 @@ func TestMarkCategoryAsReadReturnsAffectedCount(t *testing.T) {
 		t.Errorf("expected an idempotent second run to affect 0 entries, got %d", count)
 	}
 }
+
+func TestMarkGloballyVisibleFeedsAsReadBeforeDate(t *testing.T) {
+	f := newMarkAsReadFixture(t)
+
+	hidden, err := f.store.CreateCategory(f.user.ID, &model.CategoryCreationRequest{Title: "Hidden", HideGlobally: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hiddenFeed := createTestFeed(t, f.store, f.user.ID, hidden.ID, f.now, []time.Duration{60 * 24 * time.Hour})
+
+	if err := f.store.MarkGloballyVisibleFeedsAsRead(f.user.ID, f.now.Add(-30*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if unread := countUnread(t, f.store, f.user.ID, hiddenFeed.ID); unread != 1 {
+		t.Errorf("entries of a globally hidden category must stay unread, got %d unread", unread)
+	}
+	if unread := countUnread(t, f.store, f.user.ID, f.feed.ID); unread != 1 {
+		t.Errorf("only the recent entry of the visible feed should stay unread, got %d unread", unread)
+	}
+
+	// A zero date keeps the previous behaviour: every visible unread entry.
+	if err := f.store.MarkGloballyVisibleFeedsAsRead(f.user.ID, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	if unread := countUnread(t, f.store, f.user.ID, f.feed.ID); unread != 0 {
+		t.Errorf("expected no unread visible entries, got %d", unread)
+	}
+}
