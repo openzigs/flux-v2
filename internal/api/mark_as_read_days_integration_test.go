@@ -196,3 +196,61 @@ func TestMarkUserAsReadWithDaysAsOtherUser(t *testing.T) {
 		t.Errorf("expected 403 for another user, got %d", status)
 	}
 }
+
+// testMarkScopeAsReadWithDays covers a scoped mark-all-as-read endpoint (feed or category)
+// with and without the days parameter.
+func testMarkScopeAsReadWithDays(t *testing.T, pathFor func(f *markAsReadDaysFixture) string) {
+	t.Run("days marks only older entries", func(t *testing.T) {
+		t.Parallel()
+		f := newMarkAsReadDaysFixture(t)
+		path := pathFor(f)
+		total := f.unreadCount(t)
+
+		days, older := f.medianDays()
+		count := f.putCount(t, fmt.Sprintf("%s?days=%d", path, days))
+		if count != int64(older) {
+			t.Errorf("expected %d entries older than %d days, got %d", older, days, count)
+		}
+		if unread := f.unreadCount(t); unread != total-int(count) {
+			t.Errorf("newer entries must stay unread: expected %d unread, got %d", total-int(count), unread)
+		}
+		if count := f.putCount(t, fmt.Sprintf("%s?days=%d", path, days)); count != 0 {
+			t.Errorf("expected a second run to affect 0 entries, got %d", count)
+		}
+	})
+
+	t.Run("invalid days is rejected", func(t *testing.T) {
+		t.Parallel()
+		f := newMarkAsReadDaysFixture(t)
+		path := pathFor(f)
+		total := f.unreadCount(t)
+
+		for _, query := range []string{"?days=", "?days=-1", "?days=abc"} {
+			if status, body := f.put(t, path+query); status != http.StatusBadRequest {
+				t.Errorf("%s: expected 400, got %d: %s", query, status, body)
+			}
+		}
+		if unread := f.unreadCount(t); unread != total {
+			t.Errorf("an invalid request must change nothing: expected %d unread, got %d", total, unread)
+		}
+	})
+
+	t.Run("absent days is unchanged", func(t *testing.T) {
+		t.Parallel()
+		f := newMarkAsReadDaysFixture(t)
+
+		status, body := f.put(t, pathFor(f))
+		if status != http.StatusNoContent || len(body) != 0 {
+			t.Fatalf("expected 204 with no body, got %d: %q", status, body)
+		}
+		if unread := f.unreadCount(t); unread != 0 {
+			t.Errorf("expected every entry read, got %d unread", unread)
+		}
+	})
+}
+
+func TestMarkFeedAsReadWithDays(t *testing.T) {
+	testMarkScopeAsReadWithDays(t, func(f *markAsReadDaysFixture) string {
+		return fmt.Sprintf("/feeds/%d/mark-all-as-read", f.feedID)
+	})
+}
