@@ -174,6 +174,18 @@ func (s *Storage) CleanupOrphanIcons() (int64, error) {
 	return n, nil
 }
 
+// CountOrphanIcons returns how many icons are no longer referenced by any feed.
+func (s *Storage) CountOrphanIcons() int64 {
+	var count int64
+	s.db.QueryRow(`
+		SELECT count(*) FROM icons
+		WHERE NOT EXISTS (
+			SELECT 1 FROM feed_icons WHERE feed_icons.icon_id = icons.id
+		)
+	`).Scan(&count)
+	return count
+}
+
 // Icons lists all icons currently associated with any feed owned by the given user.
 func (s *Storage) Icons(userID int64) (model.Icons, error) {
 	query := `
