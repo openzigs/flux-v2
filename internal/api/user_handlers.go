@@ -8,6 +8,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"miniflux.app/v2/internal/http/request"
 	"miniflux.app/v2/internal/http/response"
@@ -129,12 +130,47 @@ func (h *handler) markUserAsReadHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.MarkAllAsRead(userID); err != nil {
+	days, hasAge, err := request.OlderThanDays(r)
+	if err != nil {
+		response.JSONBadRequest(w, r, err)
+		return
+	}
+
+	if !hasAge {
+		if err := h.store.MarkAllAsRead(userID); err != nil {
+			response.JSONServerError(w, r, err)
+			return
+		}
+
+		response.NoContent(w, r)
+		return
+	}
+
+	cutoff := request.OlderThanDaysCutoff(time.Now(), days)
+	count, err := h.store.MarkAllAsReadBeforeDate(userID, cutoff)
+	if err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
 
-	response.NoContent(w, r)
+	logMarkedOlderThan("user", userID, userID, days, cutoff, count)
+	response.JSON(w, r, &markedAsReadResponse{ChangedCount: count})
+}
+
+// markedAsReadResponse is returned by the mark-as-read endpoints when older_than_days is supplied.
+type markedAsReadResponse struct {
+	ChangedCount int64 `json:"changed_count"`
+}
+
+func logMarkedOlderThan(scope string, userID, targetID int64, days int, cutoff time.Time, count int64) {
+	slog.Info("Marked entries older than N days as read",
+		slog.String("scope", scope),
+		slog.Int64("user_id", userID),
+		slog.Int64("target_id", targetID),
+		slog.Int("older_than_days", days),
+		slog.String("cutoff", cutoff.Format(time.RFC3339)),
+		slog.Int64("nb_entries", count),
+	)
 }
 
 func (h *handler) getIntegrationsStatusHandler(w http.ResponseWriter, r *http.Request) {
