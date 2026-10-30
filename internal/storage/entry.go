@@ -546,8 +546,10 @@ func (s *Storage) MarkAllAsReadBeforeDate(userID int64, before time.Time) (int64
 
 // MarkGloballyVisibleFeedsAsRead marks as read the unread entries that are
 // visible in the global unread view, i.e. those belonging to a feed and a
-// category that are both not hidden globally.
-func (s *Storage) MarkGloballyVisibleFeedsAsRead(userID int64) error {
+// category that are both not hidden globally. When before is not the zero time,
+// only entries published strictly before it are marked. It returns the number
+// of entries changed.
+func (s *Storage) MarkGloballyVisibleFeedsAsRead(userID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -564,18 +566,28 @@ func (s *Storage) MarkGloballyVisibleFeedsAsRead(userID int64) error {
 			AND feeds.hide_globally IS FALSE
 			AND categories.hide_globally IS FALSE
 	`
-	result, err := s.db.Exec(query, model.EntryStatusRead, userID, model.EntryStatusUnread)
+	args := []any{model.EntryStatusRead, userID, model.EntryStatusUnread}
+	if !before.IsZero() {
+		query += ` AND entries.published_at < $4`
+		args = append(args, before)
+	}
+
+	result, err := s.db.Exec(query, args...)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark globally visible feeds as read: %v`, err)
+		return 0, fmt.Errorf(`store: unable to mark globally visible feeds as read: %v`, err)
 	}
 
 	count, _ := result.RowsAffected()
-	slog.Debug("Marked globally visible feed entries as read",
+	attrs := []any{
 		slog.Int64("user_id", userID),
 		slog.Int64("nb_entries", count),
-	)
+	}
+	if !before.IsZero() {
+		attrs = append(attrs, slog.String("before", before.Format(time.RFC3339)))
+	}
+	slog.Debug("Marked globally visible feed entries as read", attrs...)
 
-	return nil
+	return count, nil
 }
 
 // MarkFeedAsRead updates all feed entries to the read status.

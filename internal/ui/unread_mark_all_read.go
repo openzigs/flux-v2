@@ -5,13 +5,14 @@ package ui // import "miniflux.app/v2/internal/ui"
 
 import (
 	"net/http"
+	"time"
 
 	"miniflux.app/v2/internal/http/request"
 	"miniflux.app/v2/internal/http/response"
 )
 
 func (h *handler) markAllAsRead(w http.ResponseWriter, r *http.Request) {
-	if err := h.store.MarkGloballyVisibleFeedsAsRead(request.UserID(r)); err != nil {
+	if _, err := h.store.MarkGloballyVisibleFeedsAsRead(request.UserID(r), time.Time{}); err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
