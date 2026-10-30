@@ -412,6 +412,7 @@
     "menu.import": "Importeren",
     "menu.integrations": "Integraties",
     "menu.logout": "Uitloggen",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "Markeer alles als gelezen",
     "menu.mark_page_as_read": "Markeer deze pagina als gelezen",
     "menu.preferences": "Voorkeuren",

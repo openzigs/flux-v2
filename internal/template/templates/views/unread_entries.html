@@ -26,10 +26,15 @@
                     data-confirm="true"
                     data-url="{{ routePath "/mark-all-as-read" }}"
                     data-redirect-url="{{ routePath "/unread" }}"
+                    data-older-than-days-input="mark-all-older-than-days"
                     data-label-question="{{ t "confirm.question" }}"
                     data-label-yes="{{ t "confirm.yes" }}"
                     data-label-no="{{ t "confirm.no" }}"
                     data-label-loading="{{ t "confirm.loading" }}">{{ icon "mark-all-as-read" }}{{ t "menu.mark_all_as_read" }}</button>
+            </li>
+            <li>
+                <label for="mark-all-older-than-days">{{ t "form.mark_all_as_read.older_than_days" }}</label>
+                <input type="number" id="mark-all-older-than-days" name="older_than_days" min="1" max="36500" step="1" inputmode="numeric" size="4">
             </li>
         </ul>
     </nav>

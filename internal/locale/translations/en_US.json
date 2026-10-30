@@ -412,6 +412,7 @@
     "menu.import": "Import",
     "menu.integrations": "Integrations",
     "menu.logout": "Logout",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "Mark all as read",
     "menu.mark_page_as_read": "Mark this page as read",
     "menu.preferences": "Preferences",

@@ -37,6 +37,25 @@ function sendPOSTRequest(url, body = null) {
 }
 
 /**
+ * Append the optional "older than N days" value to a mark-all-as-read URL.
+ * The element's data-older-than-days-input names the number input to read.
+ *
+ * @param {string} url
+ * @param {Element|null} element
+ * @returns {string}
+ */
+function withOlderThanDays(url, element) {
+    const inputID = element?.dataset.olderThanDaysInput;
+    if (!inputID) return url;
+
+    const value = document.getElementById(inputID)?.value.trim();
+    if (!value) return url;
+
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}older_than_days=${encodeURIComponent(value)}`;
+}
+
+/**
  * Open a new tab with the given URL.
  *
  * @param {string} url
@@ -1259,7 +1278,8 @@ function initializeClickHandlers() {
     // Generic confirmation handler
     onClick(":is(a, button)[data-confirm]", (event) => {
         handleConfirmationMessage(event.target, (url, redirectURL) => {
-            sendPOSTRequest(url).then((response) => {
+            const button = event.target.closest("[data-confirm]");
+            sendPOSTRequest(withOlderThanDays(url, button)).then((response) => {
                 if (redirectURL) {
                     window.location.href = redirectURL;
                 } else if (response?.redirected && response.url) {

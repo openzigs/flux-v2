@@ -412,6 +412,7 @@
     "menu.import": "İçeri Aktar",
     "menu.integrations": "Entegrasyonlar",
     "menu.logout": "Çıkış",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "Tümünü okundu olarak işaretle",
     "menu.mark_page_as_read": "Bu sayfayı okundu olarak işaretle",
     "menu.preferences": "Tercihler",

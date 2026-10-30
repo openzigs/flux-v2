@@ -424,6 +424,7 @@
     "menu.import": "استيراد",
     "menu.integrations": "خدمات مرتبطة",
     "menu.logout": "تسجيل الخروج",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "تحديد الكل كمقروء",
     "menu.mark_page_as_read": "تحديد هذه الصفحة كمقروءة",
     "menu.preferences": "التفضيلات",

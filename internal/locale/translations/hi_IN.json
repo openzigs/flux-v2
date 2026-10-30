@@ -412,6 +412,7 @@
     "menu.import": "आयात करे",
     "menu.integrations": "एकीकरण",
     "menu.logout": "लॉग आउट",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "सभी को पढ़ा हुआ मार्क करें",
     "menu.mark_page_as_read": "इस पृष्ठ को पढ़ा हुआ चिह्नित करें",
     "menu.preferences": "पसंद",

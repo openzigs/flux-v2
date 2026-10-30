@@ -409,6 +409,7 @@
     "menu.import": "匯入",
     "menu.integrations": "整合",
     "menu.logout": "登出",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "全部標為已讀",
     "menu.mark_page_as_read": "將此頁面標記為已讀",
     "menu.preferences": "設定",

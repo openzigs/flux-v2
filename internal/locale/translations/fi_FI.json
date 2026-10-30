@@ -412,6 +412,7 @@
     "menu.import": "Tuo",
     "menu.integrations": "Integraatiot",
     "menu.logout": "Kirjaudu ulos",
+    "form.mark_all_as_read.older_than_days": "Only entries older than (days)",
     "menu.mark_all_as_read": "Merkitse kaikki luetuksi",
     "menu.mark_page_as_read": "Merkitse tämä sivu luetuksi",
     "menu.preferences": "Asetukset",
