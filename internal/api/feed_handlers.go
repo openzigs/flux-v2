@@ -159,12 +159,32 @@ func (h *handler) markFeedAsReadHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if _, err := h.store.MarkFeedAsRead(userID, feedID, time.Now()); err != nil {
+	days, hasAge, err := request.OlderThanDays(r)
+	if err != nil {
+		response.JSONBadRequest(w, r, err)
+		return
+	}
+
+	now := time.Now()
+	if !hasAge {
+		if _, err := h.store.MarkFeedAsRead(userID, feedID, now); err != nil {
+			response.JSONServerError(w, r, err)
+			return
+		}
+
+		response.NoContent(w, r)
+		return
+	}
+
+	cutoff := request.OlderThanDaysCutoff(now, days)
+	count, err := h.store.MarkFeedAsRead(userID, feedID, cutoff)
+	if err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
 
-	response.NoContent(w, r)
+	logMarkedOlderThan("feed", userID, feedID, days, cutoff, count)
+	response.JSON(w, r, &markedAsReadResponse{ChangedCount: count})
 }
 
 func (h *handler) getCategoryFeedsHandler(w http.ResponseWriter, r *http.Request) {
