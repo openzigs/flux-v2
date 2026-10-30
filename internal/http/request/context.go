@@ -4,7 +4,10 @@
 package request // import "miniflux.app/v2/internal/http/request"
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
+	"time"
 
 	"miniflux.app/v2/internal/model"
 )
@@ -120,4 +123,35 @@ func getContextInt64Value(r *http.Request, key ContextKey) int64 {
 		}
 	}
 	return 0
+}
+
+// OlderThanDaysParam is the query or form parameter carrying a relative age in days.
+const OlderThanDaysParam = "older_than_days"
+
+// MaxOlderThanDays bounds the relative age accepted by OlderThanDays (about 100 years).
+const MaxOlderThanDays = 36500
+
+// ErrInvalidOlderThanDays is returned when older_than_days is present but not a positive integer.
+var ErrInvalidOlderThanDays = errors.New("older_than_days must be a positive integer of days")
+
+// OlderThanDays returns the validated older_than_days value from the query string or form.
+// present is false when the parameter is absent or empty; err is set when it is present but
+// not an integer between 1 and MaxOlderThanDays.
+func OlderThanDays(r *http.Request) (days int, present bool, err error) {
+	value := r.FormValue(OlderThanDaysParam)
+	if value == "" {
+		return 0, false, nil
+	}
+
+	parsed, parseErr := strconv.Atoi(value)
+	if parseErr != nil || parsed < 1 || parsed > MaxOlderThanDays {
+		return 0, true, ErrInvalidOlderThanDays
+	}
+
+	return parsed, true, nil
+}
+
+// OlderThanDaysCutoff returns the instant N days before now; entries published strictly before it qualify.
+func OlderThanDaysCutoff(now time.Time, days int) time.Time {
+	return now.AddDate(0, 0, -days)
 }
