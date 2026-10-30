@@ -1217,7 +1217,7 @@ func (h *greaderHandler) markAllAsReadHandler(w http.ResponseWriter, r *http.Req
 			response.JSONNotFound(w, r)
 			return
 		}
-		if err := h.store.MarkCategoryAsRead(userID, category.ID, before); err != nil {
+		if _, err := h.store.MarkCategoryAsRead(userID, category.ID, before); err != nil {
 			response.JSONServerError(w, r, err)
 			return
 		}

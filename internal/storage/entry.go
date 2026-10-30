@@ -606,7 +606,7 @@ func (s *Storage) MarkFeedAsRead(userID, feedID int64, before time.Time) (int64,
 }
 
 // MarkCategoryAsRead updates all category entries to the read status.
-func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time) error {
+func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time) (int64, error) {
 	query := `
 		UPDATE
 			entries
@@ -628,7 +628,7 @@ func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time)
 	`
 	result, err := s.db.Exec(query, model.EntryStatusRead, userID, model.EntryStatusUnread, before, categoryID)
 	if err != nil {
-		return fmt.Errorf(`store: unable to mark category entries as read: %v`, err)
+		return 0, fmt.Errorf(`store: unable to mark category entries as read: %v`, err)
 	}
 
 	count, _ := result.RowsAffected()
@@ -639,7 +639,7 @@ func (s *Storage) MarkCategoryAsRead(userID, categoryID int64, before time.Time)
 		slog.String("before", before.Format(time.RFC3339)),
 	)
 
-	return nil
+	return count, nil
 }
 
 // EntryShareCode returns the share code of the provided entry.
