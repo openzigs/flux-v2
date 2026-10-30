@@ -177,3 +177,37 @@ func TestMarkFeedAsReadOlderThanDays(t *testing.T) {
 		t.Fatalf("unread = %d, want 0", got)
 	}
 }
+
+func TestMarkCategoryAsReadOlderThanDays(t *testing.T) {
+	cfg := newIntegrationTestConfig()
+	if !cfg.isConfigured() {
+		t.Skip(skipIntegrationTestsMessage)
+	}
+
+	user, client, feedID := newMarkAsReadTestUser(t, cfg)
+	feed, err := client.Feed(feedID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := fmt.Sprintf("/v1/categories/%d/mark-all-as-read", feed.Category.ID)
+
+	if status, _ := putMarkAllAsRead(t, cfg, user.Username, path, "-5"); status != http.StatusBadRequest {
+		t.Fatalf("invalid value: status %d, want 400", status)
+	}
+
+	before := unreadTotal(t, client)
+	status, body := putMarkAllAsRead(t, cfg, user.Username, path, "1")
+	if status != http.StatusOK {
+		t.Fatalf("status %d, want 200", status)
+	}
+	if got := unreadTotal(t, client); int64(before-got) != body["changed_count"] {
+		t.Fatalf("unread went %d -> %d but changed_count = %d", before, got, body["changed_count"])
+	}
+
+	if status, _ := putMarkAllAsRead(t, cfg, user.Username, path, ""); status != http.StatusNoContent {
+		t.Fatalf("status %d, want 204", status)
+	}
+	if got := unreadTotal(t, client); got != 0 {
+		t.Fatalf("unread = %d, want 0", got)
+	}
+}
