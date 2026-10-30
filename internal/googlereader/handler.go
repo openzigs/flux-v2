@@ -1202,7 +1202,7 @@ func (h *greaderHandler) markAllAsReadHandler(w http.ResponseWriter, r *http.Req
 			response.JSONBadRequest(w, r, err)
 			return
 		}
-		err = h.store.MarkFeedAsRead(userID, feedID, before)
+		_, err = h.store.MarkFeedAsRead(userID, feedID, before)
 		if err != nil {
 			response.JSONServerError(w, r, err)
 			return

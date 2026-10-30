@@ -159,7 +159,7 @@ func (h *handler) markFeedAsReadHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.MarkFeedAsRead(userID, feedID, time.Now()); err != nil {
+	if _, err := h.store.MarkFeedAsRead(userID, feedID, time.Now()); err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}

@@ -493,7 +493,7 @@ func (h *feverHandler) handleWriteFeeds(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.store.MarkFeedAsRead(userID, feedID, before); err != nil {
+	if _, err := h.store.MarkFeedAsRead(userID, feedID, before); err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
