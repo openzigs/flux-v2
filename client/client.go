@@ -336,6 +336,40 @@ func (c *Client) MarkAllAsReadContext(ctx context.Context, userID int64) error {
 	return err
 }
 
+// MarkAllAsReadOlderThanDays marks as read the user's unread entries published more than days ago
+// and returns how many entries changed.
+func (c *Client) MarkAllAsReadOlderThanDays(userID int64, days int) (int64, error) {
+	ctx, cancel := withDefaultTimeout()
+	defer cancel()
+	return c.MarkAllAsReadOlderThanDaysContext(ctx, userID, days)
+}
+
+// MarkAllAsReadOlderThanDaysContext marks as read the user's unread entries published more than days ago
+// and returns how many entries changed.
+func (c *Client) MarkAllAsReadOlderThanDaysContext(ctx context.Context, userID int64, days int) (int64, error) {
+	return c.markAsReadOlderThanDays(ctx, fmt.Sprintf("/v1/users/%d/mark-all-as-read", userID), days)
+}
+
+func (c *Client) markAsReadOlderThanDays(ctx context.Context, path string, days int) (int64, error) {
+	if days < 1 {
+		return 0, fmt.Errorf("miniflux: older than days must be a positive integer, got %d", days)
+	}
+
+	body, err := c.request.Put(ctx, path+"?older_than_days="+strconv.Itoa(days), nil)
+	if err != nil {
+		return 0, err
+	}
+	defer body.Close()
+
+	var result struct {
+		ChangedCount int64 `json:"changed_count"`
+	}
+	if err := json.NewDecoder(body).Decode(&result); err != nil {
+		return 0, fmt.Errorf("miniflux: response error (%v)", err)
+	}
+	return result.ChangedCount, nil
+}
+
 // IntegrationsStatus fetches the integrations status for the signed-in user.
 func (c *Client) IntegrationsStatus() (bool, error) {
 	ctx, cancel := withDefaultTimeout()
@@ -756,6 +790,20 @@ func (c *Client) MarkFeedAsRead(feedID int64) error {
 func (c *Client) MarkFeedAsReadContext(ctx context.Context, feedID int64) error {
 	_, err := c.request.Put(ctx, fmt.Sprintf("/v1/feeds/%d/mark-all-as-read", feedID), nil)
 	return err
+}
+
+// MarkFeedAsReadOlderThanDays marks as read the feed's unread entries published more than days ago
+// and returns how many entries changed.
+func (c *Client) MarkFeedAsReadOlderThanDays(feedID int64, days int) (int64, error) {
+	ctx, cancel := withDefaultTimeout()
+	defer cancel()
+	return c.MarkFeedAsReadOlderThanDaysContext(ctx, feedID, days)
+}
+
+// MarkFeedAsReadOlderThanDaysContext marks as read the feed's unread entries published more than days ago
+// and returns how many entries changed.
+func (c *Client) MarkFeedAsReadOlderThanDaysContext(ctx context.Context, feedID int64, days int) (int64, error) {
+	return c.markAsReadOlderThanDays(ctx, fmt.Sprintf("/v1/feeds/%d/mark-all-as-read", feedID), days)
 }
 
 // RefreshAllFeeds refreshes all feeds.
