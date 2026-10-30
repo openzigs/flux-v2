@@ -101,12 +101,32 @@ func (h *handler) markCategoryAsReadHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if _, err = h.store.MarkCategoryAsRead(userID, categoryID, time.Now()); err != nil {
+	days, hasAge, err := request.OlderThanDays(r)
+	if err != nil {
+		response.JSONBadRequest(w, r, err)
+		return
+	}
+
+	now := time.Now()
+	if !hasAge {
+		if _, err = h.store.MarkCategoryAsRead(userID, categoryID, now); err != nil {
+			response.JSONServerError(w, r, err)
+			return
+		}
+
+		response.NoContent(w, r)
+		return
+	}
+
+	cutoff := request.OlderThanDaysCutoff(now, days)
+	count, err := h.store.MarkCategoryAsRead(userID, categoryID, cutoff)
+	if err != nil {
 		response.JSONServerError(w, r, err)
 		return
 	}
 
-	response.NoContent(w, r)
+	logMarkedOlderThan("category", userID, categoryID, days, cutoff, count)
+	response.JSON(w, r, &markedAsReadResponse{ChangedCount: count})
 }
 
 func (h *handler) getCategoriesHandler(w http.ResponseWriter, r *http.Request) {
