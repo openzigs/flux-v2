@@ -26,10 +26,18 @@ func (h *handler) markCategoryFeedAsRead(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if _, err = h.store.MarkFeedAsRead(userID, feedID, checkedAt); err != nil {
+	before, err := olderThanCutoff(r, checkedAt)
+	if err != nil {
+		response.HTMLBadRequest(w, r, err)
+		return
+	}
+
+	count, err := h.store.MarkFeedAsRead(userID, feedID, before)
+	if err != nil {
 		response.HTMLServerError(w, r, err)
 		return
 	}
+	logMarkedAsRead("category_feed", userID, feedID, before, count)
 
 	response.HTMLRedirect(w, r, h.routePath("/category/%d/feeds", categoryID))
 }

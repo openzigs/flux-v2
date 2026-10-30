@@ -26,10 +26,18 @@ func (h *handler) markCategoryAsRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.store.MarkCategoryAsRead(userID, categoryID, time.Now()); err != nil {
+	before, err := olderThanCutoff(r, time.Now())
+	if err != nil {
+		response.HTMLBadRequest(w, r, err)
+		return
+	}
+
+	count, err := h.store.MarkCategoryAsRead(userID, categoryID, before)
+	if err != nil {
 		response.HTMLServerError(w, r, err)
 		return
 	}
+	logMarkedAsRead("category", userID, categoryID, before, count)
 
 	response.HTMLRedirect(w, r, h.routePath("/categories"))
 }
